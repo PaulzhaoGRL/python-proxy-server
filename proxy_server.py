@@ -1,33 +1,31 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from requests_html import HTMLSession
 import asyncio
+from playwright.async_api import async_playwright
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/fetch-html')
+@app.route('/fetch-html', methods=['GET'])
 def fetch_html():
     url = request.args.get('url')
     if not url:
-        return jsonify({'error': 'No URL provided'}), 400
+        return jsonify({'error': 'Missing URL'}), 400
 
+    html = asyncio.run(get_html(url))
+    return jsonify({'html': html})
+
+async def get_html(url):
     try:
-        session = HTMLSession()
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-        }
-        response = session.get(url, headers=headers)
-
-        # 🧠 修正：建立事件迴圈
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        response.html.render(timeout=20)
-
-        return jsonify({'html': response.html.html})
-
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            await page.goto(url, timeout=60000)
+            content = await page.content()
+            await browser.close()
+            return content
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return f"Error: {str(e)}"
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run(host='0.0.0.0', port=10000)
