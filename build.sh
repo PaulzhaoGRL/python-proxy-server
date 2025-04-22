@@ -1,10 +1,7 @@
 #!/bin/bash
 
-# 安裝 Python 套件
+echo "Installing Python dependencies..."
 pip install -r requirements.txt
 
-# 安裝 Playwright
-pip install playwright
-
-# 安裝 Chromium 瀏覽器
-python -m playwright install chromium
+echo "Installing Playwright browsers..."
+playwright install chromium
